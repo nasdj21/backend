@@ -28,7 +28,7 @@ window.myPie = new Chart(pieCtx, pieConfig);
 // Función para procesar el JSON
 const countCommentsByRegion = (data) => {
   // Inicializar contadores para cada región
-  const labels = ['Asia', 'Norte America', 'Centro America', 'Sudamerica', 'efrica', 'Europa', 'Oceania'];
+  const labels = ['Asia', 'Norte America', 'Centro America', 'Sudamerica', 'Africa', 'Europa', 'Oceania'];
   const counts = Array(labels.length).fill(0); // Crear un array de ceros con longitud igual a las etiquetas
 
   // Procesar los registros

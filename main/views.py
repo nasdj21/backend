@@ -2,13 +2,16 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required, permission_required
 
 
 # Importe requests y json
 import requests
 import json
 
-
+# Restricción de acceso con @login_required y permisos con @permission_required
+@login_required
+@permission_required('main.index_viewer', raise_exception=True)
 def index(request):
 
     # Arme el endpoint del REST API
