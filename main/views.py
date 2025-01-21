@@ -3,6 +3,8 @@ from django.shortcuts import render
 # Create your views here.
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required, permission_required
+from collections import Counter
+from datetime import datetime
 
 
 # Importe requests y json
@@ -26,15 +28,48 @@ def index(request):
     # Respuestas totales
     total_response = len(response_dict.keys())
 
+    
     #Valores de la respuesta
     responses = response_dict.values()
 
+    #primera respuesta
+    if responses: #Verifica que no este vacio       
+        first_key = list(response_dict.keys())[0]  # Verifica que haya claves
+        first_response = response_dict.get(first_key, {})
+        first_responses = first_response.get('saved') #Extrae la fecha de saved
 
+    #Ultima respuesta
+    if responses: #Verifica que no este vacio       
+        last_key = list(response_dict.keys())[-1]  # Verifica que haya claves
+        last_response = response_dict.get(last_key, {})
+        last_responses = last_response.get('saved') #Extrae la fecha de saved
+
+     # Calcular el día con más respuestas
+    date_counter = Counter()  # Contador para almacenar la cantidad de respuestas por día
+    for response in response_dict.values():
+        saved_date = response.get('saved')  # Extraer la fecha de 'saved'
+        if saved_date:
+            try:
+                # Convertir la fecha al formato 'YYYY-MM-DD'
+                date_obj = datetime.fromisoformat(saved_date.replace("Z", "+00:00"))
+                date_str = date_obj.strftime('%Y-%m-%d')  # Formato de solo día
+                date_counter[date_str] += 1  # Incrementar el contador para ese día
+            except ValueError:
+                continue  # Si ocurre un error, omitir este dato y continuar
+
+    # Encontrar el día con más respuestas (solo el día)
+    high_rate_responses = None
+    if date_counter:
+        high_rate_responses = max(date_counter, key=date_counter.get)  # Día con más respuestas
+     
     #Objeto con los datos a render
     data = {
         'title':'Landing - Dashboard',
         'total_responses':total_response,
-        'responses': responses
+        'responses': responses,
+        'first_responses': first_responses,
+        'last_responses': last_responses,
+        'high_rate_responses': high_rate_responses,
     }
 
     return render(request, 'main/index.html', data)
