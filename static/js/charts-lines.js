@@ -49,44 +49,80 @@ const lineConfig = {
 // Crear el gráfico en el canvas con ID 'line'
 const lineCtx = document.getElementById('line');
 window.myLine = new Chart(lineCtx, lineConfig);
+const groupResponsesByRegionAndDay = (data) => {
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const groupedData = {};
 
-// Función para procesar los datos agrupados por región
-const countResponsesByRegion = (data) => {
-  const regions = ['Asia', 'Norte America', 'Centro America', 'Sudamerica', 'Africa', 'Europa', 'Oceania'];
-  const counts = Array(regions.length).fill(0); 
-  console.log(counts)
-
-  // Procesar los registros
-  Object.values(data).forEach((record) => {
+  data.forEach((record) => {
     const region = record.region;
-    if (!region) return;
+    const savedDate = record.saved;
 
-    const index = regions.indexOf(region);
-    if (index !== -1) {
-      counts[index]++; // Incrementar el contador de la región correspondiente
+    if (!region || !savedDate) return;
+
+    const dayOfWeek = daysOfWeek[new Date(savedDate).getDay()];
+
+    if (!groupedData[region]) {
+      groupedData[region] = {
+        Sunday: 0,
+        Monday: 0,
+        Tuesday: 0,
+        Wednesday: 0,
+        Thursday: 0,
+        Friday: 0,
+        Saturday: 0,
+      };
     }
+
+    groupedData[region][dayOfWeek]++;
   });
 
-  return { labels: regions, counts };
+  return groupedData;
 };
+
+const prepareChartData = (groupedData) => {
+  const regions = Object.keys(groupedData);
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const datasets = regions.map((region) => ({
+    label: region,
+    data: daysOfWeek.map((day) => groupedData[region][day] || 0),
+    borderColor: getRandomColor(),
+    backgroundColor: getRandomColor(),
+    fill: false,
+  }));
+
+  return { labels: daysOfWeek, datasets };
+};
+
+const getRandomColor = () => {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+};
+
 
 // Función para actualizar el gráfico
 const updateLineChart = () => {
   fetch('/api/v1/landing')
     .then((response) => response.json())
     .then((data) => {
-      const { labels, counts } = countResponsesByRegion(data);
+      const dataArray = Array.isArray(data) ? data : Object.values(data);
 
-      window.myLine.data.labels = [];
-      window.myLine.data.datasets[0].data = [];
+      const groupedData = groupResponsesByRegionAndDay(dataArray);
 
-      window.myLine.data.labels = [...labels];
-      window.myLine.data.datasets[0].data = [...counts];
+      const { labels, datasets } = prepareChartData(groupedData);
 
+      window.myLine.data.labels = labels;
+      window.myLine.data.datasets = datasets; 
+
+      // Refrescar el gráfico
       window.myLine.update();
     })
     .catch((error) => console.error('Error:', error));
 };
 
-// Llamar a la función para actualizar el gráfico
+
 updateLineChart();
