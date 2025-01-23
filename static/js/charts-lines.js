@@ -1,71 +1,92 @@
-/**
- * For usage, visit Chart.js docs https://www.chartjs.org/docs/latest/
- */
+// Configuración inicial del gráfico de líneas
 const lineConfig = {
   type: 'line',
   data: {
-    labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+    labels: [],
     datasets: [
       {
-        label: 'Organic',
-        /**
-         * These colors come from Tailwind CSS palette
-         * https://tailwindcss.com/docs/customizing-colors/#default-color-palette
-         */
-        backgroundColor: '#0694a2',
+        label: 'Respuestas por Región',
+        data: [],
         borderColor: '#0694a2',
-        data: [43, 48, 40, 54, 67, 73, 70],
+        backgroundColor: '#0694a2',
         fill: false,
-      },
-      {
-        label: 'Paid',
-        fill: false,
-        /**
-         * These colors come from Tailwind CSS palette
-         * https://tailwindcss.com/docs/customizing-colors/#default-color-palette
-         */
-        backgroundColor: '#7e3af2',
-        borderColor: '#7e3af2',
-        data: [24, 50, 64, 74, 52, 51, 65],
       },
     ],
   },
   options: {
     responsive: true,
-    /**
-     * Default legends are ugly and impossible to style.
-     * See examples in charts.html to add your own legends
-     *  */
-    legend: {
-      display: false,
-    },
-    tooltips: {
-      mode: 'index',
-      intersect: false,
-    },
-    hover: {
-      mode: 'nearest',
-      intersect: true,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top', 
+      },
+      title: {
+        display: true,
+        text: 'Respuestas por Región',
+      },
     },
     scales: {
       x: {
-        display: true,
-        scaleLabel: {
+        title: {
           display: true,
-          labelString: 'Month',
+          text: 'Región',
         },
       },
       y: {
-        display: true,
-        scaleLabel: {
+        title: {
           display: true,
-          labelString: 'Value',
+          text: 'Número de Respuestas',
+        },
+        beginAtZero: true, // Asegurar que el eje Y comience en 0
+        ticks: {
+          callback: (value) => Math.floor(value), // Mostrar únicamente números enteros
         },
       },
     },
   },
-}
+};
 
-// change this to the id of your chart element in HMTL
-const lineCtx = document.getElementById('line')
-window.myLine = new Chart(lineCtx, lineConfig)
+// Crear el gráfico en el canvas con ID 'line'
+const lineCtx = document.getElementById('line');
+window.myLine = new Chart(lineCtx, lineConfig);
+
+// Función para procesar los datos agrupados por región
+const countResponsesByRegion = (data) => {
+  const regions = ['Asia', 'Norte America', 'Centro America', 'Sudamerica', 'Africa', 'Europa', 'Oceania'];
+  const counts = Array(regions.length).fill(0); 
+  console.log(counts)
+
+  // Procesar los registros
+  Object.values(data).forEach((record) => {
+    const region = record.region;
+    if (!region) return;
+
+    const index = regions.indexOf(region);
+    if (index !== -1) {
+      counts[index]++; // Incrementar el contador de la región correspondiente
+    }
+  });
+
+  return { labels: regions, counts };
+};
+
+// Función para actualizar el gráfico
+const updateLineChart = () => {
+  fetch('/api/v1/landing')
+    .then((response) => response.json())
+    .then((data) => {
+      const { labels, counts } = countResponsesByRegion(data);
+
+      window.myLine.data.labels = [];
+      window.myLine.data.datasets[0].data = [];
+
+      window.myLine.data.labels = [...labels];
+      window.myLine.data.datasets[0].data = [...counts];
+
+      window.myLine.update();
+    })
+    .catch((error) => console.error('Error:', error));
+};
+
+// Llamar a la función para actualizar el gráfico
+updateLineChart();
