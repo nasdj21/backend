@@ -37,9 +37,9 @@ const lineConfig = {
           display: true,
           text: 'Número de Respuestas',
         },
-        beginAtZero: true, // Asegurar que el eje Y comience en 0
+        beginAtZero: true,
         ticks: {
-          callback: (value) => Math.floor(value), // Mostrar únicamente números enteros
+          callback: (value) => parseInt(value, 10),
         },
       },
     },
