@@ -50,15 +50,15 @@ def index(request):
         saved_date = response.get('saved')  # Extraer la fecha de 'saved'
         if saved_date:
             try:
-                # Convertir la fecha al formato 'YYYY-MM-DD'
-                date_obj = datetime.fromisoformat(saved_date.replace("Z", "+00:00"))
-                date_str = date_obj.strftime('%Y-%m-%d')  # Formato de solo día
-                date_counter[date_str] += 1  # Incrementar el contador para ese día
+                # Parsear la fecha en formato dd/mm/aaaa
+                date_obj = datetime.strptime(saved_date, "%d/%m/%Y")
+                weekday = date_obj.strftime("%A")  # Obtener el día de la semana como texto
+                date_counter[weekday] += 1  # Incrementar el contador para ese día
             except ValueError:
-                continue  # Si ocurre un error, omitir este dato y continuar
+                continue  # Omitir errores de formato
 
-    # Encontrar el día con más respuestas (solo el día)
-    high_rate_responses = None
+    # Encontrar el día con más respuestas
+    high_rate_responses= None
     if date_counter:
         high_rate_responses = max(date_counter, key=date_counter.get)  # Día con más respuestas
      
