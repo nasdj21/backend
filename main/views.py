@@ -1,79 +1,72 @@
 from django.shortcuts import render
-
-# Create your views here.
-from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required, permission_required
 from collections import Counter
 from datetime import datetime
+from api.views import LandingAPI
 
 
-# Importe requests y json
-import requests
-import json
-
-# Restricción de acceso con @login_required y permisos con @permission_required
 @login_required
 @permission_required('main.index_viewer', raise_exception=True)
 def index(request):
+    try:
+        # Llamar a la API directamente
+        api = LandingAPI()
+        response = api.get(request)
+        response_dict = response.data if response.data else {}  # Verificar si hay datos
 
-    # Arme el endpoint del REST API
-    current_url = request.build_absolute_uri()
-    url = current_url + '/api/v1/landing'
+        # Si la respuesta está vacía, inicializar variables para evitar errores
+        if not response_dict:
+            return render(request, 'main/index.html', {
+                'title': 'Landing - Dashboard',
+                'total_responses': 0,
+                'responses': [],
+                'first_responses': None,
+                'last_responses': None,
+                'high_rate_responses': None,
+            })
 
-    # Petición al REST API
-    response_http = requests.get(url)
-    response_dict = json.loads(response_http.content)
+        # Respuestas totales
+        total_response = len(response_dict.keys())
 
+        # Valores de la respuesta
+        # Convertir a lista para evitar problemas
+        responses = list(response_dict.values())
 
-    # Respuestas totales
-    total_response = len(response_dict.keys())
+        # Obtener la primera y última respuesta
+        first_responses = responses[0].get('saved') if responses else None
+        last_responses = responses[-1].get('saved') if responses else None
 
-    
-    #Valores de la respuesta
-    responses = response_dict.values()
+        # Calcular el día con más respuestas
+        date_counter = Counter()
+        for response in responses:
+            saved_date = response.get('saved')
+            if saved_date:
+                try:
+                    date_obj = datetime.strptime(saved_date, "%d/%m/%Y")
+                    weekday = date_obj.strftime("%A")
+                    date_counter[weekday] += 1
+                except ValueError:
+                    continue
 
-    #primera respuesta
-    if responses: #Verifica que no este vacio       
-        first_key = list(response_dict.keys())[0]  # Verifica que haya claves
-        first_response = response_dict.get(first_key, {})
-        first_responses = first_response.get('saved') #Extrae la fecha de saved
+        # Día con más respuestas
+        high_rate_responses = max(
+            date_counter, key=date_counter.get) if date_counter else None
 
-    #Ultima respuesta
-    if responses: #Verifica que no este vacio       
-        last_key = list(response_dict.keys())[-1]  # Verifica que haya claves
-        last_response = response_dict.get(last_key, {})
-        last_responses = last_response.get('saved') #Extrae la fecha de saved
+        # Datos a renderizar en la plantilla
+        data = {
+            'title': 'Landing - Dashboard',
+            'total_responses': total_response,
+            'responses': responses,
+            'first_responses': first_responses,
+            'last_responses': last_responses,
+            'high_rate_responses': high_rate_responses,
+        }
 
-     # Calcular el día con más respuestas
-    date_counter = Counter()  # Contador para almacenar la cantidad de respuestas por día
-    for response in response_dict.values():
-        saved_date = response.get('saved')  # Extraer la fecha de 'saved'
-        if saved_date:
-            try:
-                # Parsear la fecha en formato dd/mm/aaaa
-                date_obj = datetime.strptime(saved_date, "%d/%m/%Y")
-                weekday = date_obj.strftime("%A")  # Obtener el día de la semana como texto
-                date_counter[weekday] += 1  # Incrementar el contador para ese día
-            except ValueError:
-                continue  # Omitir errores de formato
+        return render(request, 'main/index.html', data)
 
-    # Encontrar el día con más respuestas
-    high_rate_responses= None
-    if date_counter:
-        high_rate_responses = max(date_counter, key=date_counter.get)  # Día con más respuestas
-     
-    #Objeto con los datos a render
-    data = {
-        'title':'Landing - Dashboard',
-        'total_responses':total_response,
-        'responses': responses,
-        'first_responses': first_responses,
-        'last_responses': last_responses,
-        'high_rate_responses': high_rate_responses,
-    }
-
-    return render(request, 'main/index.html', data)
-
-
-
-
+    except Exception as e:
+        # Manejo de errores generales
+        return render(request, 'main/index.html', {
+            'title': 'Landing - Dashboard',
+            'error': f"Ocurrió un error: {str(e)}",
+        })
